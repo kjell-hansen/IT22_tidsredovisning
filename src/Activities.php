@@ -65,31 +65,31 @@ function hamtaAllaAktiviteter(): Response {
  */
 function hamtaEnskildAktivitet(string $id): Response {
     // Kontrollera inparameter
-    $kontrolleratId= filter_var($id, FILTER_VALIDATE_INT);
-    
-    if($kontrolleratId=== false || $kontrolleratId<1) {
-        $retur=new stdClass();
-        $retur->error=['Bad request', 'Ogiltigt id'];
+    $kontrolleratId = filter_var($id, FILTER_VALIDATE_INT);
+
+    if ($kontrolleratId === false || $kontrolleratId < 1) {
+        $retur = new stdClass();
+        $retur->error = ['Bad request', 'Ogiltigt id'];
         return new Response($retur, 400);
     }
-    
+
     // Koppla mot databasen
-    $db= connectDb();
-    
+    $db = connectDb();
+
     // Skicka fråga
-    $stmt=$db->prepare("SELECT id, namn FROM aktiviteter WHERE id=:id");
-    $result=$stmt->execute(['id'=>$kontrolleratId]);
-    
+    $stmt = $db->prepare("SELECT id, namn FROM aktiviteter WHERE id=:id");
+    $result = $stmt->execute(['id' => $kontrolleratId]);
+
     // Kontrollera svar
-    if($row=$stmt->fetch(PDO::FETCH_ASSOC)) {
-        $retur=new stdClass();
-        $retur->id=$row['id'];
-        $retur->activity=$row['namn'];
+    if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $retur = new stdClass();
+        $retur->id = $row['id'];
+        $retur->activity = $row['namn'];
         return new Response($retur);
     } else {
-       $retur=new stdClass();
-        $retur->error=['Bad request', "Angivet id ($kontrolleratId) finns inte"];
-        return new Response($retur, 400);      
+        $retur = new stdClass();
+        $retur->error = ['Bad request', "Angivet id ($kontrolleratId) finns inte"];
+        return new Response($retur, 400);
     }
 }
 
@@ -100,7 +100,7 @@ function hamtaEnskildAktivitet(string $id): Response {
  */
 function sparaNyAktivitet(string $aktivitet): Response {
     // Kontrollera indata - rensa bort onödiga tecken
-    $kontrolleradAktivitet = filter_var($aktivitet, FILTER_SANITIZE_ENCODED);
+    $kontrolleradAktivitet = filter_var($aktivitet, FILTER_SANITIZE_SPECIAL_CHARS);
 
     // Kontrollera att aktiviteten inte är tom!
     if (trim($aktivitet) === '') {
@@ -108,7 +108,7 @@ function sparaNyAktivitet(string $aktivitet): Response {
         $retur->error = ['Bad request', 'Aktivitet får inte vara tom'];
         return new Response($retur, 400);
     }
-    
+
     try {
         // Koppla mot databasen
         $db = connectDb();
@@ -142,7 +142,43 @@ function sparaNyAktivitet(string $aktivitet): Response {
  * @return Response
  */
 function uppdateraAktivitet(string $id, string $aktivitet): Response {
-    
+    // Kontrollera indata
+    $kontrolleradId = filter_var($id, FILTER_VALIDATE_INT);
+    $kontrolleradAktivitet = filter_var($aktivitet, FILTER_SANITIZE_SPECIAL_CHARS);
+    $kontrolleradAktivitet = trim($kontrolleradAktivitet);
+
+    if ($kontrolleradId === false || $kontrolleradId < 1 || $kontrolleradAktivitet === '') {
+        $retur = new stdClass();
+        $retur->error = ['Bad request', 'Felaktig indata till uppdatera aktivitet'];
+        return new Response($retur, 400);
+    }
+
+    try {
+        // Koppla databas
+        $db = connectDb();
+
+        // Förbereda fråga
+        $stmt = $db->prepare("UPDATE aktiviteter SET namn=:aktivitet WHERE id=:id");
+        $stmt->execute(['aktivitet' => $kontrolleradAktivitet, 'id' => $kontrolleradId]);
+
+        // Hantera svar
+        if ($stmt->rowCount() === 1) {
+            $retur = new stdClass();
+            $retur->result = true;
+            $retur->message = ['Uppdatera aktivitet lyckades', '1 rad uppdaterad'];
+            return new Response($retur);
+        } else {
+            $retur = new stdClass();
+            $retur->result = false;
+            $retur->message = ['Uppdatera aktivitet misslyckades', 'Ingen rad uppdaterad'];
+            return new Response($retur);
+        }
+    } catch (Exception $e) {
+        $retur = new stdClass();
+        $retur->error = ['Bad request', 'Något gick fel vid databasanropet'
+            , $e->getMessage()];
+        return new Response($retur, 400);
+    }
 }
 
 /**
