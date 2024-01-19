@@ -22,7 +22,7 @@ function activities(Route $route, array $postData): Response {
             return sparaNyAktivitet((string) $postData["activity"]);
         }
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::PUT) {
-            return uppdateraAktivitet( $route->getParams()[0],  $postData["activity"]);
+            return uppdateraAktivitet($route->getParams()[0], $postData["activity"]);
         }
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::DELETE) {
             return raderaAktivetet($route->getParams()[0]);
@@ -40,20 +40,20 @@ function activities(Route $route, array $postData): Response {
  */
 function hamtaAllaAktiviteter(): Response {
     // Koppla mot databas
-    $db= connectDb();
-    
+    $db = connectDb();
+
     // Hämta alla aktiviteter
     $result = $db->query("SELECT id, namn FROM aktiviteter");
-    
+
     // Skapa returvärde
-    $retur=[];
+    $retur = [];
     foreach ($result as $item) {
-        $post=new stdClass();
-        $post->id=$item['id'];
-        $post->namn=$item['namn'];
-        $retur[]=$post;
+        $post = new stdClass();
+        $post->id = $item['id'];
+        $post->namn = $item['namn'];
+        $retur[] = $post;
     }
-    
+
     // Skicka svar
     return new Response($retur);
 }
@@ -64,6 +64,7 @@ function hamtaAllaAktiviteter(): Response {
  * @return Response
  */
 function hamtaEnskildAktivitet(string $id): Response {
+    
 }
 
 /**
@@ -72,6 +73,40 @@ function hamtaEnskildAktivitet(string $id): Response {
  * @return Response
  */
 function sparaNyAktivitet(string $aktivitet): Response {
+    // Kontrollera indata - rensa bort onödiga tecken
+    $kontrolleradAktivitet = filter_var($aktivitet, FILTER_SANITIZE_ENCODED);
+
+    // Kontrollera att aktiviteten inte är tom!
+    if (trim($aktivitet) === '') {
+        $retur = new stdClass();
+        $retur->error = ['Bad request', 'Aktivitet får inte vara tom'];
+        return new Response($retur, 400);
+    }
+    
+    try {
+        // Koppla mot databasen
+        $db = connectDb();
+
+        // Exekvera frågan
+        $stmt = $db->prepare("INSERT INTO aktiviteter (namn) VALUES (:aktivitet)");
+        $svar = $stmt->execute(['aktivitet' => $kontrolleradAktivitet]);
+
+        // Kontrollera svaret och returnera svar
+        if ($svar === true) {
+            $retur = new stdClass();
+            $retur->id = $db->lastInsertId();
+            $retur->meddelande = ['Spara lyckades', '1 post lades till'];
+            return new Response($retur);
+        } else {
+            $retur = new stdClass();
+            $retur->error = ['Bad request', 'Något gick fel vid spara'];
+            return new Response($retur, 400);
+        }
+    } catch (Exception $e) {
+        $retur = new stdClass();
+        $retur->error = ['Bad request', 'Fel vid spara', $e->getMessage()];
+        return new Response($retur, 400);
+    }
 }
 
 /**
@@ -81,6 +116,7 @@ function sparaNyAktivitet(string $aktivitet): Response {
  * @return Response
  */
 function uppdateraAktivitet(string $id, string $aktivitet): Response {
+    
 }
 
 /**
@@ -89,4 +125,5 @@ function uppdateraAktivitet(string $id, string $aktivitet): Response {
  * @return Response
  */
 function raderaAktivetet(string $id): Response {
+    
 }
