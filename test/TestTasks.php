@@ -493,9 +493,9 @@ function test_KontrolleraIndata(): string {
         $postdata["date"]="27.3.2023";
         $svar= kontrolleraIndata($postdata);
         if(count($svar)===1) {
-            $retur .="<p class='ok'>Test felaktigt datum {$postdata["date"]} lyckades</p>";
+            $retur .="<p class='ok'>Test felformaterat datum {$postdata["date"]} lyckades</p>";
         } else {
-            $retur .="<p class='error'>Test felaktigt datum {$postdata["date"]} misslyckades<br>"
+            $retur .="<p class='error'>Test felformaterat datum {$postdata["date"]} misslyckades<br>"
                     . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
                     . print_r($svar, true) . "</p>";
         }
@@ -515,9 +515,9 @@ function test_KontrolleraIndata(): string {
         $postdata["date"]=(new DateTime('tomorrow'))->format('Y-m-d');
         $svar= kontrolleraIndata($postdata);
         if(count($svar)===1) {
-            $retur .="<p class='ok'>Test felaktigt datum {$postdata["date"]} lyckades</p>";
+            $retur .="<p class='ok'>Test ogiltigt datum i framtiden {$postdata["date"]} lyckades</p>";
         } else {
-            $retur .="<p class='error'>Test felaktigt datum {$postdata["date"]} misslyckades<br>"
+            $retur .="<p class='error'>Test ogiltigt datum i framtiden {$postdata["date"]} misslyckades<br>"
                     . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
                     . print_r($svar, true) . "</p>";
         }
@@ -527,9 +527,9 @@ function test_KontrolleraIndata(): string {
         $postdata["time"]="1:00";
         $svar= kontrolleraIndata($postdata);
         if(count($svar)===1) {
-            $retur .="<p class='ok'>Test felaktig tid {$postdata["time"]} lyckades</p>";
+            $retur .="<p class='ok'>Test felaktigt formaterad tid {$postdata["time"]} lyckades</p>";
         } else {
-            $retur .="<p class='error'>Test felaktigt datum {$postdata["time"]} misslyckades<br>"
+            $retur .="<p class='error'>Test felaktigt formaterad tid {$postdata["time"]} misslyckades<br>"
                     . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
                     . print_r($svar, true) . "</p>";
         }
@@ -540,7 +540,7 @@ function test_KontrolleraIndata(): string {
         if(count($svar)===1) {
             $retur .="<p class='ok'>Test felaktig tid {$postdata["time"]} lyckades</p>";
         } else {
-            $retur .="<p class='error'>Test felaktigt datum {$postdata["time"]} misslyckades<br>"
+            $retur .="<p class='error'>Test felaktigt tid {$postdata["time"]} misslyckades<br>"
                     . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
                     . print_r($svar, true) . "</p>";
         }
@@ -549,9 +549,9 @@ function test_KontrolleraIndata(): string {
         $postdata["time"]="17:30";
         $svar= kontrolleraIndata($postdata);
         if(count($svar)===1) {
-            $retur .="<p class='ok'>Test felaktig tid {$postdata["time"]} lyckades</p>";
+            $retur .="<p class='ok'>Test för lång tid {$postdata["time"]} lyckades</p>";
         } else {
-            $retur .="<p class='error'>Test felaktigt datum {$postdata["time"]} misslyckades<br>"
+            $retur .="<p class='error'>Test för lång tid {$postdata["time"]} misslyckades<br>"
                     . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
                     . print_r($svar, true) . "</p>";
         }
@@ -561,9 +561,9 @@ function test_KontrolleraIndata(): string {
         $postdata["activityId"]="0";
         $svar= kontrolleraIndata($postdata);
         if(count($svar)===1) {
-            $retur .="<p class='ok'>Test felaktigt aktivitetId {$postdata["activityId"]} lyckades</p>";
+            $retur .="<p class='ok'>Test angivet aktivitetId saknas {$postdata["activityId"]} lyckades</p>";
         } else {
-            $retur .="<p class='error'>Test felaktigt aktivitetId {$postdata["activityId"]} misslyckades<br>"
+            $retur .="<p class='error'>Test angivet aktivitetId {$postdata["activityId"]} misslyckades<br>"
                     . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
                     . print_r($svar, true) . "</p>";
         }
