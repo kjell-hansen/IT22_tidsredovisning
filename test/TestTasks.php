@@ -328,9 +328,99 @@ function test_UppdateraUppgifter(): string {
     $retur = "<h2>test_UppdateraUppgifter</h2>";
 
     try {
-        $retur .= "<p class='error'>Inga tester implementerade</p>";
+        // Koppla databas och skapa transaktion
+        $db= connectDb();
+        $db->beginTransaction();
+        
+        // Hämta postdata!
+        $svar= hamtaSida("1");
+        if($svar->getStatus()!=200) {
+             throw new Exception('Kunde inte hämta poster för test av Uppdatera uppgift');
+        }
+        $aktiviteter=$svar->getContent()->tasks;
+        
+        // Misslyckas med ogiltigt id=0
+        $postData=get_object_vars($aktiviteter[0]); // Gör om stdClass till array
+        $svar= uppdateraUppgift('0', $postData);
+        if($svar->getStatus()===400) {
+            $retur .="<p class='ok'>Misslyckades med att hämta post med id=0, som förväntat</p>";
+        } else {
+            $retur .="<p class='error'>Misslyckat test med att hämta post med id=0<br>"
+                    . $svar->getStatus() . " returnerades istället för förväntat 400<br>"
+                    . print_r($svar->getContent(), true) . "</p>";
+        }
+        
+        // Misslyckas med ogiltigt id=sju
+        $svar= uppdateraUppgift('sju', $postData);
+        if($svar->getStatus()===400) {
+            $retur .="<p class='ok'>Misslyckades med att hämta post med id=sju, som förväntat</p>";
+        } else {
+            $retur .="<p class='error'>Misslyckat test med att hämta post med id=sju<br>"
+                    . $svar->getStatus() . " returnerades istället för förväntat 400<br>"
+                    . print_r($svar->getContent(), true) . "</p>";
+        }
+        
+        // Misslyckas med ogiltigt id=3.14
+        $svar= uppdateraUppgift('3.14', $postData);
+        if($svar->getStatus()===400) {
+            $retur .="<p class='ok'>Misslyckades med att hämta post med id=3.14, som förväntat</p>";
+        } else {
+            $retur .="<p class='error'>Misslyckat test med att hämta post med id=3.14<br>"
+                    . $svar->getStatus() . " returnerades istället för förväntat 400<br>"
+                    . print_r($svar->getContent(), true) . "</p>";
+        }
+                
+        // Lyckas med id som finns
+        $id=$postData['id'];
+        $postData['activityId']=(string) $postData['activityId'];
+        $postData['description'] =$postData['description'] . "(Uppdaterad)";
+         $svar= uppdateraUppgift("$id", $postData);
+        if($svar->getStatus()===200 && $svar->getContent()->result===true) {
+            $retur .="<p class='ok'>Uppdatera uppgift lyckades, som förväntat</p>";
+        } else {
+            $retur .="<p class='error'>Uppdatera uppgift misslyckades<br>"
+                    . $svar->getStatus() . " returnerades istället för förväntat 200<br>"
+                    . print_r($svar->getContent(),true) . "</p>";
+        }
+        
+        // Misslyckas med samma data
+         $svar= uppdateraUppgift("$id", $postData);
+        if($svar->getStatus()===200 && $svar->getContent()->result===false) {
+            $retur .="<p class='ok'>Uppdatera uppgift misslyckades, som förväntat</p>";
+        } else {
+            $retur .="<p class='error'>Uppdatera uppgift misslyckades<br>"
+                    . $svar->getStatus() . " returnerades istället för förväntat 200<br>"
+                    . print_r($svar->getContent(),true) . "</p>";
+        }
+
+        // Misslyckas med felaktig indata
+        $postData['time']='09:70';
+        $svar= uppdateraUppgift("$id", $postData);
+        if($svar->getStatus()===400) {
+            $retur .="<p class='ok'>Misslyckades med att uppdatera post med felaktig indata, som förväntat</p>";
+        } else {
+            $retur .="<p class='error'>Uppdatera uppgift med felaktig indata misslyckades<br>"
+                    . $svar->getStatus() . " returnerades istället för förväntat 400<br>"
+                    . print_r($svar->getContent(),true) . "</p>";
+        }
+            
+        // Lyckas med saknad beskrivning
+        $postData['time']='01:30';
+        unset($postData['description']);
+        $svar= uppdateraUppgift("$id", $postData);
+        if ($svar->getStatus()===200) {
+            $retur .="<p class='ok'>Uppdatera post med saknad description lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Uppdatera uppgift utan description misslyckades<br>"
+                    . $svar->getStatus() . " returnerades istället för förväntat 200<br>"
+                    . print_r($svar->getContent(),true) . "</p>";            
+        }
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
+    } finally {
+        if($db){
+            $db->rollback();
+        }
     }
 
     return $retur;
@@ -340,7 +430,143 @@ function test_KontrolleraIndata(): string {
     $retur = "<h2>test_KontrolleraIndata</h2>";
 
     try {
-        $retur .= "<p class='error'>Inga tester implementerade</p>";
+        // Test alla saknas
+        $postdata=[];
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===3) {
+            $retur .="<p class='ok'>Test alla element saknas lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test alla element saknas misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 3<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+
+        // Test datum finns
+        $postdata["date"]=date('Y-m-d');
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===2) {
+            $retur .="<p class='ok'>Test alla element saknas utom datum lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test alla element utom datum saknas misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 2<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+
+        // Test tid finns
+        $postdata["time"]="01:00";
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===1) {
+            $retur .="<p class='ok'>Test alla element saknas utom datum och tid lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test alla element utom datum och tid saknas misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+
+        // Test aktivitetid finns
+        // Förbered data
+        $content= hamtaAllaAktiviteter()->getContent();
+        $aktiviteter=$content['activities'];
+        $aktivitetId=$aktiviteter[0]->id;
+        $postdata["activityId"]="$aktivitetId";
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===0) {
+            $retur .="<p class='ok'>Test description saknas lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test description saknas misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 0<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+
+        // Test alla element finns
+        $postdata["description"]="Beskrivning finns också";
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===0) {
+            $retur .="<p class='ok'>Test alla element finns lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test alla element finns <br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 0<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+        
+        // Test felformatterat datum 27.5.2023
+        $postdata["date"]="27.3.2023";
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===1) {
+            $retur .="<p class='ok'>Test felaktigt datum {$postdata["date"]} lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test felaktigt datum {$postdata["date"]} misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+                    
+        // Test felaktigt datum 2023-05-37
+        $postdata["date"]="2023-05-37";
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===1) {
+            $retur .="<p class='ok'>Test felaktigt datum {$postdata["date"]} lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test felaktigt datum {$postdata["date"]} misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+        
+        // Test datum i framtiden  (i morgon)
+        $postdata["date"]=(new DateTime('tomorrow'))->format('Y-m-d');
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===1) {
+            $retur .="<p class='ok'>Test felaktigt datum {$postdata["date"]} lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test felaktigt datum {$postdata["date"]} misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+        
+        // Test felformatterad tid 1:00
+        $postdata["date"]=date('Y-m-d');
+        $postdata["time"]="1:00";
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===1) {
+            $retur .="<p class='ok'>Test felaktig tid {$postdata["time"]} lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test felaktigt datum {$postdata["time"]} misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+        
+        // Test felaktig tid 01:79
+        $postdata["time"]="01:79";
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===1) {
+            $retur .="<p class='ok'>Test felaktig tid {$postdata["time"]} lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test felaktigt datum {$postdata["time"]} misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+        
+        // Test för lång tid 17:30
+        $postdata["time"]="17:30";
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===1) {
+            $retur .="<p class='ok'>Test felaktig tid {$postdata["time"]} lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test felaktigt datum {$postdata["time"]} misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
+                    . print_r($svar, true) . "</p>";
+        }
+        
+        // Test aktivitetid 0
+        $postdata["time"]="01:30";
+        $postdata["activityId"]="0";
+        $svar= kontrolleraIndata($postdata);
+        if(count($svar)===1) {
+            $retur .="<p class='ok'>Test felaktigt aktivitetId {$postdata["activityId"]} lyckades</p>";
+        } else {
+            $retur .="<p class='error'>Test felaktigt aktivitetId {$postdata["activityId"]} misslyckades<br>"
+                    . count($svar) . " felmeddelanden rapporterades istället för förväntat 1<br>"
+                    . print_r($svar, true) . "</p>";
+        }
     } catch (Exception $ex) {
         $retur .= "<p class='error'>Något gick fel, meddelandet säger:<br> {$ex->getMessage()}</p>";
     }
