@@ -44,6 +44,7 @@ function tasks(Route $route, array $postData): Response {
         if (count($route->getParams()) === 1 && $route->getMethod() === RequestMethod::DELETE) {
             return raderaUppgift($route->getParams()[0]);
         }
+        return new Response(['Okänt anrop', $route->getRoute()], 500);
     } catch (Exception $exc) {
         return new Response($exc->getMessage(), 400);
     }

@@ -329,7 +329,6 @@ function test_RaderaAktivitet(): string {
             throw new Exception("Kan inte skapa ny aktivitet, tester avbryts");
         }
         
-        var_dump($nyttId);
         $svar= raderaAktivitet("$nyttId");
         if($svar->getStatus()===200 && $svar->getContent()->result===true) {
             $retur .="<p class='ok'>Radera aktivitet fungerade</p>";
